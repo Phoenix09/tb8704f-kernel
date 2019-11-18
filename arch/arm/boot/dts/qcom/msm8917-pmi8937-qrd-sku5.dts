@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/dts-v1/;
+
+#include "msm8917.dtsi"
+#include "msm8917-pmi8937-qrd-sku5.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. MSM8917-PMI8937 QRD SKU5";
+	compatible = "qcom,msm8917-qrd-sku5", "qcom,msm8917-qrd",
+		   "qcom,msm8917", "qcom,qrd";
+	qcom,board-id= <0x1000b 0>;
+};
+
+&int_codec {
+	qcom,model = "msm8917-sku5-snd-card";
+};
+&pm8937_vadc {
+	chan@13 {
+		label = "batt_rid";
+		reg = <0x13>;
+		qcom,decimation = <0>;
+		qcom,pre-div-channel-scaling = <0>;
+		qcom,calibration-type = "ratiometric"; //absolute 625mV or 1.25V
+		qcom,scale-function = <0>;//0 means c raw adc code to volt, 2 is for tempratue
+		qcom,hw-settle-time = <2>;//2 means 200ms
+		qcom,fast-avg-setup = <0>;//0 with only one average measurement
+
+		/delete-property/ qcom,vadc-thermal-node;
+		status = "okay";
+	};
+};
+
+&i2c_2 {
+	smb1360_otg_supply: smb1360-chg-fg@14 {
+            compatible = "qcom,smb1360-chg-fg";
+            reg = <0x14>;
+            interrupt-parent = <&tlmm>;
+            interrupts = <61 2>;
+            pinctrl-names = "default";
+            pinctrl-0 = <&smb_int_default>;
+	    qcom,stat-pulsed-irq;
+ 	    // qcom,charging-disabled;
+            qcom,chg-inhibit-disabled;
+            qcom,iterm-ma = <100>;
+            /*battery capacity*/
+            qcom,float-voltage-mv = <4350>;
+            qcom,fg-cc-to-cv-mv = <4329>;
+            qcom,fg-cutoff-voltage-mv = <3400>;
+            qcom,fg-voltage-min-mv = <3400>;
+            qcom,fg-voltage-empty-mv = <3400>;
+            qcom,fg-suspend-voltage-empty-mv = <3400>;
+            qcom,fg-ibatt-standby-ma = <200>;
+            qcom,fg-soc-max = <90>;
+            qcom,fg-soc-min = <15>;
+            qcom,fg-batt-capacity-mah = <4650>;
+            qcom,fg-cc-soc-coeff = <0x7B0C>;
+            qcom,thermistor-c1-coeff = <0x86DA>; // B value = 3380
+            qcom,charging-timeout = <768>;
+            qcom,otg-batt-curr-limit = <1500>;
+            qcom,recharge-thresh-mv = <100>;
+            qcom,fg-auto-recharge-soc = <99>;
+            qcom,thermal-mitigation = <900 500 500 0>;
+            qcom,fg-delta-soc = <1>;
+            qcom,empty-soc-disabled;
+            regulator-name = "smb1360_otg_vreg";
+            qcom,rsense-10mhom;
+            qcom,fg-reset-at-pon;
+            qcom,soft-jeita-supported;
+            qcom,warm-bat-decidegc = <450>;
+            qcom,cool-bat-decidegc = <100>;
+            qcom,otp-hard-jeita-config;
+            qcom,otp-hot-bat-decidegc = <450>;
+            qcom,otp-cold-bat-decidegc = <(-10)>;
+            qcom,otp-hard-jeita-hysteresis = <0 20>;
+            qcom,warm-bat-mv = <4100>;
+            qcom,cool-bat-mv = <4100>;
+            qcom,warm-bat-ma = <450>;
+            qcom,cool-bat-ma = <450>;
+
+            qcom,battery-type-b = "feimaotui_4650mah";
+            qcom,battery-type-a = "guangyu_4650mah";
+            qcom,led_control = <&tlmm 43 0x0>;
+
+            qcom,batt-profile-select;
+            vdd-supply = <&pm8917_l16>;
+            qcom,smb1360-vadc = <&pm8937_vadc>;
+            qcom,profile-a-rid-kohm = <22>;
+            qcom,profile-b-rid-kohm = <110>;
+            qcom,batt-id-vref-uv = <1800000>;
+            qcom,batt-id-rpullup-kohm = <68>;
+
+            agassiz,force-select-profile-b;
+        };
+};
+
+&tlmm {
+	tps65132-en-pin {
+		qcom,pins = "gpio44", "gpio45";
+		qcom,num-grp-pins = <2>;
+		label = "tps65132_en_pins";
+		qcom,pin-func = <0>;
+
+		tps65132_en_default: en-default {
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+	};
+};
+
+&i2c_5{ /* BLSP1 QUP2 */
+	tps65132@3e {
+		compatible = "ti,tps65132";
+		reg = <0x3e>;
+		i2c-pwr-supply = <&pm8917_l6>;
+		ti,en-gpio-lpm;
+		pinctrl-names = "default";
+		pinctrl-0 = <&tps65132_en_default>;
+
+		regulators {
+			tps65132_pos: pos-boost {
+				regulator-name = "tps65132-pos";
+				regulator-min-microvolt = <5400000>;
+				regulator-max-microvolt = <5400000>;
+				ti,discharge-enable;
+				ti,enable-time = <800>;
+				ti,current-limit = <200000>;
+				ti,en-gpio = <&tlmm 44 0>;
+			};
+
+			tps65132_neg: neg-boost {
+				regulator-name = "tps65132-neg";
+				regulator-min-microvolt = <5400000>;
+				regulator-max-microvolt = <5400000>;
+				ti,discharge-enable;
+				ti,enable-time = <800>;
+				ti,current-limit = <40000>;
+				ti,en-gpio = <&tlmm 45 0>;
+			};
+		};
+	};
+};
